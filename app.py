@@ -1,5 +1,6 @@
 from roastbot import generate_roast 
 from motivation import generate_motivation
+from response import generate_response
 from flask import Flask, render_template, request, redirect, url_for, flash, session ,jsonify 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -9,7 +10,6 @@ import random
 
 app = Flask(__name__)
 socketio = SocketIO(app)
-
 waiting_users = []
 app.secret_key = 'your_secret_key_here'  
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  
@@ -34,11 +34,11 @@ def index():
         if user:
             return render_template('index.html', user=user)
     return render_template('index.html')
+
 @socketio.on('joinRoom')
 def join_room_event():
     global waiting_users
     sid = request.sid
-
     if waiting_users:  
         peer_sid = waiting_users.pop(0)  
         join_room(peer_sid)
@@ -135,6 +135,25 @@ def roast():
     roast_reply = generate_roast(user_message) 
     return jsonify({"reply": roast_reply})
 
+@app.route('/get-cohere-response', methods=['POST'])
+def get_cohere_response():
+    try:
+        # Get the text from the POST request
+        data = request.get_json()
+        user_input = data.get('text')
+
+        if user_input:
+            # Get the response from the Cohere API
+            response_text = generate_response(user_input)
+            return jsonify({"response": response_text})
+
+        else:
+            return jsonify({"error": "No text provided"}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == '__main__':
     socketio.run(app, debug=True)
     app.run(debug=True)
+
