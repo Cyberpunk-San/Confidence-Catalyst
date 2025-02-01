@@ -33,6 +33,16 @@
         button:hover {
             background-color: #ff3399;
         }
+        #transcript {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: left;
+            max-width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
 </head>
 <body>
@@ -46,18 +56,27 @@
         <button onclick="leaveCall()">Leave Call</button>
     </div>
 
+    <div id="transcript">
+        <h2>Transcript</h2>
+        <p id="transcribedText">Listening...</p>
+        <p id="cohereResponse">Cohere AI Response...</p>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
         const socket = io.connect(window.location.origin);
         let localStream;
         let peerConnection;
         const peerConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+        const transcriptText = document.getElementById("transcribedText");
+        const cohereResponseText = document.getElementById("cohereResponse");
 
         async function startVideo() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             document.getElementById('localVideo').srcObject = localStream;
 
-            socket.emit('joinRoom');  // Request a random pair
+            startSpeechRecognition();
+            socket.emit('joinRoom');  
         }
 
         socket.on('peerFound', async ({ isCaller }) => {
@@ -67,6 +86,7 @@
 
             peerConnection.ontrack = event => {
                 document.getElementById('remoteVideo').srcObject = event.streams[0];
+                startCohereProcessing(event.streams[0]);
             };
 
             peerConnection.onicecandidate = event => {
@@ -99,6 +119,51 @@
             peerConnection.close();
             socket.emit('leaveRoom');
             location.reload();
+        }
+
+        function startSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                transcriptText.innerText = "Speech recognition not supported in this browser.";
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = event => {
+                let transcript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript + ' ';
+                }
+                transcriptText.innerText = transcript;
+                fetchCohereResponse(transcript);
+            };
+
+            recognition.onerror = event => {
+                console.error('Speech recognition error:', event.error);
+            };
+
+            recognition.start();
+        }
+
+        async function fetchCohereResponse(text) {
+            const response = await fetch('/get-cohere-response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text })
+            });
+
+            const data = await response.json();
+            if (data.response) {
+                cohereResponseText.innerText = data.response; // Display response from backend
+            } else if (data.error) {
+                cohereResponseText.innerText = `Error: ${data.error}`; // Handle error
+            }
         }
 
         startVideo();
