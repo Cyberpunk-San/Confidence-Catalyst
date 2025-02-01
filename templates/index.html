@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Introvert Booster</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    /* General Styles */
+    @keyframes aurora {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    body {
+      background: linear-gradient(-45deg, #031528, #0c324b, #48135d, #12375c);
+      background-size: 400% 400%;
+      animation: aurora 20s infinite alternate ease-in-out;
+    }
+
+    header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+      display: inline-block;
+    }
+
+    .logo span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: paint 0.5s forwards;
+    }
+
+    @keyframes paint {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+        background: linear-gradient(45deg, #a8edea, #fed6e3); /* Light gradient */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+    }
+
+    .profile-dropdown {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .profile-info {
+      display: none;
+      position: fixed; /* Changed to fixed to stay on top layer */
+      top: 50px; /* Adjusted to prevent overlap */
+      right: 0;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000; /* Ensures it stays on top */
+      border-radius: 10px;
+    }
+
+    .profile-info p {
+      margin: 5px 0;
+      color: #fff;
+    }
+
+    .profile-info a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      margin-top: 10px;
+    }
+
+    .profile-info a:hover {
+      text-decoration: underline;
+    }
+
+    .login-btn {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .login-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* Mood Board Section */
+    .mood-board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      flex: 1;
+    }
+
+    .mood-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .mood-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .mood-card h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .mood-card p {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Footer */
+    footer {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      text-align: center;
+      margin-top: auto;
+      box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .social-links a,
+    .legal-links a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 10px;
+      transition: opacity 0.3s ease;
+    }
+
+    .social-links a:hover,
+    .legal-links a:hover {
+      opacity: 0.8;
+    }
+
+    /* Light Effect */
+    .mood-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      border-radius: 15px;
+    }
+
+    .mood-card:hover::before {
+      opacity: 1;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .mood-board {
+      animation: fadeIn 1s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <span>C</span>
+      <span>O</span>
+      <span>N</span>
+      <span>F</span>
+      <span>I</span>
+      <span>D</span>
+      <span>E</span>
+      <span>N</span>
+      <span>C</span>
+      <span>E</span>
+      <span> </span>
+      <span>C</span>
+      <span>A</span>
+      <span>T</span>
+      <span>A</span>
+      <span>L</span>
+      <span>S</span>
+      <span>T</span>
+    </div>
+    <nav>
+      {% if 'user_id' in session %}>
+        <div class="profile-dropdown" onclick="toggleProfile()">
+          <span>Welcome, {{ user.name }}</span>
+          <div id="profile-info" class="profile-info">
+            <p>Name: {{ user.name }}</p>
+            <p>Email: {{ user.email }}</p>
+            <a href="{{ url_for('logout') }}">Logout</a>
+          </div>
+        </div>
+      {% else %}
+        <button class="login-btn" onclick="window.location.href='{{ url_for('login') }}';">Login/Signup</button>
+      {% endif %}
+    </nav>
+  </header>
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="fade-in-animation">Sup Dude!! Are You a scary cat?</h1>
+    <style>
+      .fade-in-animation {
+        opacity: 0;
+        animation: fadeIn 2s forwards;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    </style>
+    <p>Let's Empower you to thrive in social situation.<br>Let's slap on their face who make fun of you!!<br>LESSSS GOO!!</p>
+    <button class="cta-btn" onclick="window.location.href='{{ url_for('index') }}';">Get Started</button>
+  </div>
+<button id="dark-mode-toggle" class="dark-mode-toggle">🌙</button>
+
+<style>
+  .dark-mode-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    transition: background 0.3s ease, transform 0.2s ease-in-out;
+  }
+
+  .dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+  }
+
+  /* Light Mode Styles */
+  .light-mode {
+    background: #f0f0f0;
+    color: #222;  /* Darker text color for readability */
+    transition: background 0.5s ease, color 0.5s ease;
+  }
+
+  .light-mode .logo {
+    color: #1e1e2f;  
+  }
+
+  .light-mode .mood-card, 
+  .light-mode .testimonial-card, 
+  .light-mode .feature-card {
+    background: rgba(255, 255, 255, 0.95);
+    color: #222;  
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .light-mode a {
+    color: #007bff; 
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('dark-mode-toggle');
+  const body = document.body;
+
+
+  if (localStorage.getItem('theme') === 'light') {
+    body.classList.add('light-mode');
+    toggle.textContent = '🌞';
+  }
+
+  toggle.addEventListener('click', () => {
+    body.classList.toggle('light-mode');
+    
+    if (body.classList.contains('light-mode')) {
+      toggle.textContent = '🌞';
+      localStorage.setItem('theme', 'light');
+    } else {
+      toggle.textContent = '🌙';
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+</script>
+
+</section>
+
+<style>
+  .hero {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 100px 20px;
+    text-align: center;
+    border-radius: 15px;
+    margin: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .hero-content h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    background: linear-gradient(45deg, #a8edea, #fed6e3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-content p {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 30px;
+  }
+
+  .cta-btn {
+    background: linear-gradient(45deg, #a8edea, #fed6e3);
+    color: #1e1e2f;
+    border: none;
+    padding: 15px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+</style>
+
+  <!-- Mood Board Section -->
+  <section class="mood-board">
+    <div class="mood-card" onclick="window.location.href='{{ url_for("roast_mode") }}';">
+      <h2>SASS MODE!!</h2>
+      <p>Master the art of witty comebacks with AI-powered roasts. Never be at a loss for words again!</p>
+    </div>
+    <div class="mood-card" onclick="window.location.href='{{ url_for("motivational_mode") }}';">
+      <h2>ARG! EXHAUSTED MODE</h2>
+      <p>Boost your confidence with motivational quotes, tips, and public speaking exercises.</p>
+    </div>
+    <div class="mood-card" onclick="window.location.href='{{ url_for("skills_increase_mode") }}';">
+      <h2>TALK DOJO</h2>
+      <p>Practice conversations in real-time with AI-assisted response suggestions.</p>
+    </div>
+    <div class="mood-card" onclick="window.location.href='{{ url_for("meditation_mode") }}';">
+      <h2>CHILL CHAMBER</h2>
+      <p>World is too socio to stay right?? Let's meditate</p>
+    </div>
+  </section>
+<section class="testimonials">
+  <h2>Don't believe it? Seriously? Hear Out from them</h2>
+  <div class="testimonial-cards">
+    <div class="testimonial-card">
+      <p>"Introvert Booster helped me feel more confident in social settings. The Roast Mode is my favorite!"</p>
+      <span>- Jane Doe</span>
+    </div>
+    <div class="testimonial-card">
+      <p>"The Meditation Mode is so calming. It's my go-to after a long day."</p>
+      <span>- John Smith</span>
+    </div>
+    <div class="testimonial-card">
+      <p>"Skills Increase Mode is a game-changer. I feel more prepared for conversations now."</p>
+      <span>- Emily Clark</span>
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonials {
+    padding: 40px 20px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 20px;
+    border-radius: 15px;
+  }
+
+  .testimonials h2 {
+    font-size: 32px;
+    margin-bottom: 30px;
+    background: linear-gradient(45deg, #a8edea, #fed6e3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .testimonial-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+
+  .testimonial-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .testimonial-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .testimonial-card p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 10px;
+  }
+
+  .testimonial-card span {
+    font-size: 14px;
+    color: #a8edea;
+  }
+</style>
+
+
+  <!-- Footer -->
+  <footer>
+    <div class="social-links">
+      <a href="#">Facebook</a>
+      <a href="#">Twitter</a>
+      <a href="#">Instagram</a>
+    </div>
+    <div class="legal-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Contact Us</a>
+    </div>
+    <!-- Back to Top Button -->
+<button id="back-to-top" class="back-to-top">↑</button>
+
+<style>
+  .back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    transition: background 0.3s ease;
+    display: none;
+  }
+
+  .back-to-top:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+</style>
+
+<script>
+  const backToTop = document.getElementById('back-to-top');
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      backToTop.style.display = 'block';
+    } else {
+      backToTop.style.display = 'none';
+    }
+  });
+
+  backToTop.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>
+  </footer>
+
+  <script>
+    function toggleProfile() {
+      var profileInfo = document.getElementById("profile-info");
+      if (profileInfo.style.display === "none" || profileInfo.style.display === "") {
+        profileInfo.style.display = "block";
+      } else {
+        profileInfo.style.display = "none";
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const letters = document.querySelectorAll('.logo span');
+      letters.forEach((letter, index) => {
+        letter.style.animationDelay = `${index * 0.1}s`;
+      });
+    });
+  </script>
+  <!-- Loading Animation -->
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+</div>
+
+<style>
+  .loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #a8edea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+
+<script>
+  window.addEventListener('load', () => {
+    document.getElementById('loading').style.display = 'none';
+  });
+</script>  
+</body>
+</html>

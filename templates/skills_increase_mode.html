@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills Increase Mode - Video Call</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1e1e2e;
+            color: white;
+        }
+        video {
+            width: 45%;
+            height: auto;
+            border-radius: 10px;
+            margin: 10px;
+        }
+        #controls {
+            margin-top: 15px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff007f;
+            color: white;
+        }
+        button:hover {
+            background-color: #ff3399;
+        }
+    </style>
+</head>
+<body>
+    <h1>Skills Increase Mode - Video Chat</h1>
+    <p>Connecting to a random user...</p>
+
+    <video id="localVideo" autoplay muted></video>
+    <video id="remoteVideo" autoplay></video>
+
+    <div id="controls">
+        <button onclick="leaveCall()">Leave Call</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+        const socket = io.connect(window.location.origin);
+        let localStream;
+        let peerConnection;
+        const peerConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+        async function startVideo() {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
+
+            socket.emit('joinRoom');  // Request a random pair
+        }
+
+        socket.on('peerFound', async ({ isCaller }) => {
+            peerConnection = new RTCPeerConnection(peerConfig);
+            
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = event => {
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit('signal', { type: 'candidate', candidate: event.candidate });
+                }
+            };
+
+            if (isCaller) {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('signal', { type: 'offer', offer });
+            }
+        });
+
+        socket.on('signal', async data => {
+            if (data.type === 'offer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.emit('signal', { type: 'answer', answer });
+            } else if (data.type === 'answer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            } else if (data.type === 'candidate' && peerConnection) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        });
+
+        function leaveCall() {
+            peerConnection.close();
+            socket.emit('leaveRoom');
+            location.reload();
+        }
+
+        startVideo();
+    </script>
+</body>
+</html>

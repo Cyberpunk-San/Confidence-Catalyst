@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roast Mode </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='roast.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="navbar">SASS MODE!!</div>
+
+    <div id="chatbox">
+        <div id="messages"></div>
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type something savage..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Roast!</button>
+    </div>
+
+    <script>
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            let userMessage = document.getElementById("userInput").value;
+            document.getElementById("userInput").value = "";
+
+            if (userMessage.trim() === "") return;
+
+            // Display user message
+            let messagesDiv = document.getElementById("messages");
+            let userMsg = `<p class="user-message"><strong>You:</strong> ${userMessage}</p>`;
+            messagesDiv.innerHTML += userMsg;
+
+            // Scroll to the bottom of the chatbox
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Send message to Flask backend
+            fetch("/roast", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                let botReply = `<p class="bot-message"><strong>RoastBot:</strong> ${data.reply}</p>`;
+                messagesDiv.innerHTML += botReply;
+                // Scroll to the bottom of the chatbox after bot reply
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+</body>
+</html>

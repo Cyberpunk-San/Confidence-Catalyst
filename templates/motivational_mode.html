@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motivational Mode</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='motivate.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 ARG!EXHAUSTED?? 🌿</h1>
+
+        <div id="chatbox">
+            <div id="messages"></div>
+        </div>
+
+        <div class="input-container">
+            <textarea id="userInput" placeholder="Tell me what's on your mind..." onkeypress="handleKeyPress(event)" aria-label="Type your message here"></textarea>
+            <button id="sendButton" onclick="sendMessage()">Inspire Me!</button>
+            <button id="clearButton" onclick="clearChat()">Clear Chat</button>
+        </div>
+        <div id="loading" style="display: none;">Loading...</div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const userInput = document.getElementById("userInput");
+            const sendButton = document.getElementById("sendButton");
+            const loading = document.getElementById("loading");
+            const messagesDiv = document.getElementById("messages");
+
+            let userMessage = userInput.value.trim();
+            userInput.value = "";
+
+            if (userMessage === "") return;
+
+            // Disable input and button while processing
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            loading.style.display = "block";
+
+            // Display user message
+            const userMsg = `<p><strong>You:</strong> ${escapeHtml(userMessage)}</p>`;
+            messagesDiv.innerHTML += userMsg;
+
+            // Fetch bot response
+            fetch("/motivate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botReply = `<p><strong>Motivation Bot:</strong> ${escapeHtml(data.reply)}</p>`;
+                messagesDiv.innerHTML += botReply;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll to the latest message
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                const errorMsg = `<p><strong>Motivation Bot:</strong> Sorry, something went wrong. Please try again later.</p>`;
+                messagesDiv.innerHTML += errorMsg;
+            })
+            .finally(() => {
+                // Re-enable input and button
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                loading.style.display = "none";
+                userInput.focus(); // Focus back on the input field
+            });
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault(); // Prevent newline in textarea
+                sendMessage();
+            }
+        }
+
+        function clearChat() {
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.innerHTML = ""; // Clear all messages
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

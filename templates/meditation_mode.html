@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindful Moments - Meditation Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&family=Roboto+Slab:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        @keyframes aurora {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body {
+            background: linear-gradient(-45deg, #031528, #0c324b, #48135d, #12375c);
+            background-size: 400% 400%;
+            animation: aurora 20s infinite alternate ease-in-out;
+            font-family: 'Quicksand', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        header h1 {
+            font-family: 'Roboto Slab', serif;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+        }
+
+        .timer-section {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .timer-btn {
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            color: #2d3436;
+            font-weight: 500;
+        }
+
+        .timer-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            background-color: #83a4d4;
+            color: #fff;
+        }
+
+        .player-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .control-btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 20px;
+            background: #0c324b;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+
+        .control-btn:hover {
+            background: #03414c;
+            transform: scale(1.1);
+        }
+
+        #progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            margin: 1.5rem 0;
+        }
+
+        #progress {
+            height: 100%;
+            background: #83a4d4;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        #track-info {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+
+        #current-time {
+            font-size: 1.4rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 150px;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .bar {
+            width: 4px;
+            height: 20px;
+            background: #146d48;
+            position: absolute;
+            bottom: 0;
+            transform-origin: bottom;
+            animation: wave 1s infinite alternate ease-in-out;
+        }
+
+        @keyframes wave {
+            0% {
+                transform: scaleY(0.3);
+            }
+            100% {
+                transform: scaleY(1);
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mindful Moments</h1>
+            <p>Find your peace in the present moment</p>
+        </header>
+
+        <div class="timer-section">
+            <button class="timer-btn" data-time="300">5 Min</button>
+            <button class="timer-btn" data-time="600">10 Min</button>
+            <button class="timer-btn" data-time="900">15 Min</button>
+        </div>
+
+        <div class="player-section">
+            <div id="track-info">Meditation Music</div>
+            <div id="current-time">00:00</div>
+            <div id="progress-bar">
+                <div id="progress"></div>
+            </div>
+            
+            <div class="visualizer" id="visualizer"></div>
+            
+            <div class="controls">
+                <button class="control-btn" id="play-btn">▶ Play</button>
+                <button class="control-btn" id="pause-btn">⏸ Pause</button>
+                <button class="control-btn" id="reset-btn">⏹ Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const playBtn = document.getElementById('play-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const progress = document.getElementById('progress');
+        const currentTimeDisplay = document.getElementById('current-time');
+        
+        let audio = new Audio();
+        let timer;
+        let duration = 0;
+        let isPlaying = false;
+
+        // SoundHelix random music URL
+        const soundhelixUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
+        // Timer functionality
+        document.querySelectorAll('.timer-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                duration = parseInt(btn.dataset.time);
+                startTimer(duration);
+                playTrack();
+            });
+        });
+
+        function startTimer(seconds) {
+            clearInterval(timer);
+            let remaining = seconds;
+            
+            timer = setInterval(() => {
+                if (isPlaying) {
+                    remaining--;
+                    if (remaining <= 0) {
+                        clearInterval(timer);
+                        audio.pause();
+                        alert('Meditation session complete!');
+                    }
+                }
+            }, 1000);
+        }
+
+        function playTrack() {
+            audio = new Audio(soundhelixUrl);
+            audio.play();
+            isPlaying = true;
+            
+            audio.addEventListener('timeupdate', () => {
+                const progressPercent = (audio.currentTime / audio.duration) * 100;
+                progress.style.width = `${progressPercent}%`;  <!-- Corrected this -->
+                currentTimeDisplay.textContent = formatTime(audio.currentTime);
+            });
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (!isPlaying) {
+                audio.play();
+                isPlaying = true;
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            audio.pause();
+            isPlaying = false;
+        });
+
+        resetBtn.addEventListener('click', () => {
+            audio.pause();
+            audio.currentTime = 0;
+            isPlaying = false;
+            clearInterval(timer);
+            progress.style.width = '0%';
+            currentTimeDisplay.textContent = '00:00';
+        });
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;  <!-- Corrected this -->
+        }
+
+        const visualizer = document.getElementById('visualizer');
+        for (let i = 0; i < 50; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.left = `${i * 8}px`;  <!-- Corrected this -->
+            bar.style.animationDelay = `${i * 0.05}s`;  <!-- Corrected this -->
+            visualizer.appendChild(bar);
+        }
+    </script>
+</body>
+</html>
