@@ -39,14 +39,17 @@ def index():
 def join_room_event():
     global waiting_users
     sid = request.sid
-    if waiting_users:  
-        peer_sid = waiting_users.pop(0)  
+    print(f"User {sid} joined the room. Waiting users: {waiting_users}")
+    if waiting_users:
+        peer_sid = waiting_users.pop(0)
+        print(f"Pairing {sid} with {peer_sid}")
         join_room(peer_sid)
         join_room(sid)
         emit('peerFound', {'isCaller': True}, room=peer_sid)
         emit('peerFound', {'isCaller': False}, room=sid)
     else:
         waiting_users.append(sid)
+        print(f"User {sid} is waiting for a peer.")
 
 @socketio.on('leaveRoom')
 def leave_room_event():
@@ -57,7 +60,16 @@ def leave_room_event():
 
 @socketio.on('signal')
 def signaling(data):
-    emit('signal', data, broadcast=True, include_self=False)
+    if 'transcript' in data:
+        emit('transcript', data['transcript'], room=data['room'])
+    else:
+        emit('signal', data, broadcast=True, include_self=False)
+
+@socketio.on('sendTranscript')
+def handle_transcript(data):
+    room = data['room']
+    transcript = data['transcript']
+    emit('transcript', {'transcript': transcript, 'from': request.sid}, room=room)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -156,4 +168,3 @@ def get_cohere_response():
 if __name__ == '__main__':
     socketio.run(app, debug=True)
     app.run(debug=True)
-
