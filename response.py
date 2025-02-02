@@ -22,7 +22,7 @@ def generate_response(user_input):
     try:
         # Construct a detailed prompt for better context
         prompt = (
-            f"'{user_input}'. Respond in a way you are human, and have to respond in a professional, friendly way."
+            f"you need to teach user what to speak during conversation, now teach them other user is saying :'{user_input}'"
         )
 
         # Generate the response using Cohere's API
@@ -30,7 +30,7 @@ def generate_response(user_input):
             model="command",
             prompt=prompt,
             temperature=0.7, 
-            max_tokens=20 
+            max_tokens=70 
         )
         response_text = response.generations[0].text.strip()
         return response_text
