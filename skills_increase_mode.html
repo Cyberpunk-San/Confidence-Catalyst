@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills Increase Mode - Video Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1e1e2e;
+            color: white;
+        }
+        video {
+            width: 45%;
+            height: auto;
+            border-radius: 10px;
+            margin: 10px;
+        }
+        #controls {
+            margin-top: 15px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff007f;
+            color: white;
+        }
+        button:hover {
+            background-color: #ff3399;
+        }
+        #transcript {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: left;
+            max-width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Skills Increase Mode - Video Chat</h1>
+    <p>Connecting to a random user...</p>
+
+    <video id="localVideo" autoplay muted></video>
+    <video id="remoteVideo" autoplay></video>
+
+    <div id="controls">
+        <button onclick="leaveCall()">Leave Call</button>
+    </div>
+
+    <div id="transcript">
+        <h2>Transcript</h2>
+        <p id="transcribedText">Listening...</p>
+        <p id="cohereResponse">Cohere AI Response...</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+        const socket = io.connect(window.location.origin);
+        let localStream;
+        let peerConnection;
+        const peerConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+        const transcriptText = document.getElementById("transcribedText");
+        const cohereResponseText = document.getElementById("cohereResponse");
+
+        async function startVideo() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('localVideo').srcObject = localStream;
+
+                startSpeechRecognition();
+                socket.emit('joinRoom');  
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+            }
+        }
+
+        socket.on('peerFound', ({ isCaller }) => {
+            console.log(`Peer found! Is caller: ${isCaller}`);
+            peerConnection = new RTCPeerConnection(peerConfig);
+
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = event => {
+                console.log("Remote stream received.");
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    console.log("Sending ICE candidate:", event.candidate);
+                    socket.emit('signal', { type: 'candidate', candidate: event.candidate });
+                }
+            };
+
+            if (isCaller) {
+                console.log("Creating offer.");
+                peerConnection.createOffer().then(offer => {
+                    console.log("Offer created:", offer);
+                    peerConnection.setLocalDescription(offer);
+                    socket.emit('signal', { type: 'offer', offer });
+                }).catch(error => {
+                    console.error('Error creating offer:', error);
+                });
+            }
+        });
+
+        socket.on('signal', async data => {
+            console.log(`Signal received: ${data.type}`);
+            if (data.type === 'offer') {
+                console.log("Setting remote description (offer).");
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await peerConnection.createAnswer();
+                console.log("Creating answer:", answer);
+                await peerConnection.setLocalDescription(answer);
+                socket.emit('signal', { type: 'answer', answer });
+            } else if (data.type === 'answer') {
+                console.log("Setting remote description (answer).");
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            } else if (data.type === 'candidate' && peerConnection) {
+                console.log("Adding ICE candidate:", data.candidate);
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        });
+
+        socket.on('transcript', data => {
+            if (data.from !== socket.id) {
+                const remoteTranscriptText = document.createElement('p');
+                remoteTranscriptText.innerText = `Remote User: ${data.transcript}`;
+                document.getElementById('transcript').appendChild(remoteTranscriptText);
+                fetchCohereResponse(data.transcript);
+            }
+        });
+
+        function leaveCall() {
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            socket.emit('leaveRoom');
+            location.reload();
+        }
+
+        function startSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                transcriptText.innerText = "Speech recognition not supported in this browser.";
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = event => {
+                let transcript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript + ' ';
+                }
+                transcriptText.innerText = transcript;
+                socket.emit('sendTranscript', { transcript: transcript, room: socket.id });
+                fetchCohereResponse(transcript);
+            };
+
+            recognition.onerror = event => {
+                console.error('Speech recognition error:', event.error);
+            };
+
+            recognition.start();
+        }
+
+        async function fetchCohereResponse(text) {
+            try {
+                const response = await fetch('/get-cohere-response', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+                if (data.response) {
+                    const cohereResponse = document.createElement('p');
+                    cohereResponse.innerText = `AI Response: ${data.response}`;
+                    document.getElementById('transcript').appendChild(cohereResponse);
+                } else if (data.error) {
+                    const errorResponse = document.createElement('p');
+                    errorResponse.innerText = `Error: ${data.error}`;
+                    document.getElementById('transcript').appendChild(errorResponse);
+                }
+            } catch (error) {
+                console.error('Error fetching Cohere response:', error);
+            }
+        }
+
+        startVideo();
+    </script>
+</body>
+</html>
