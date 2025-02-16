@@ -150,12 +150,10 @@ def roast():
 @app.route('/get-cohere-response', methods=['POST'])
 def get_cohere_response():
     try:
-        # Get the text from the POST request
         data = request.get_json()
         user_input = data.get('text')
 
         if user_input:
-            # Get the response from the Cohere API
             response_text = generate_response(user_input)
             return jsonify({"response": response_text})
 
