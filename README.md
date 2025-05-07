@@ -63,18 +63,6 @@
    - **SQLite**: Firestore is used to store user interactions, preferences, and any saved responses or feedback from **Sass Mode**, **Talk Dojo**, and **Chill Chamber**. It allows the platform to store past conversations, provide personalized responses, and track the user’s growth over time.  
 
 4. **To Run:**
-Great! Here's the complete **"To Run"** section formatted for inclusion in your README.md file:
-
-````markdown
-## 🚀 To Run the Project
-
-Follow these steps to set up and run the Confidence Catalyst Flask app:
-
-1. **Clone the repository**  
-   ```bash
-   git clone https://github.com/your-username/confidence-catalyst.git
-   cd confidence-catalyst
-````
 
 4.1. **Install the required packages**
    Make sure you have Python installed, then run:
